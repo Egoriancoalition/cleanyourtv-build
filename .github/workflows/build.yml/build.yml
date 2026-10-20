@@ -1,0 +1,46 @@
+name: Build CleanYourTV APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Download source
+        run: |
+          set -e
+          curl -fL \
+            https://github.com/andikatuluspangestu/cleanyourtv/archive/refs/heads/polytron-glass-launcher.zip \
+            -o source.zip
+          unzip -q source.zip -d source
+
+      - name: Find and build project
+        run: |
+          set -e
+          find source -name gradlew -type f
+          GRADLEW=$(find source -name gradlew -type f | head -n 1)
+          if [ -z "$GRADLEW" ]; then
+            echo "Gradle wrapper not found"
+            exit 1
+          fi
+          cd "$(dirname "$GRADLEW")"
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CleanYourTV-APK
+          path: source/**/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
